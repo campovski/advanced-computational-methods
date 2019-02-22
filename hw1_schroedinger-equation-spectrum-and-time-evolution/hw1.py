@@ -227,11 +227,11 @@ def time_evolution_changing_lambda(lams, x, h, tau, niter, a=5):
 
 def task2(a=5):
     Ns = range(6)
-    lams = numpy.linspace(0, 1, 11)
+    lams = numpy.linspace(0, 0.5, 11)
     L = 10
     h = 0.1
     tau = 0.0099
-    niter = 5000
+    niter = 10000
     x = numpy.linspace(-L, L, int(2*L/h) + 1)
 
     states = time_evolution_changing_lambda(lams, x, h, tau, niter, a=5)
