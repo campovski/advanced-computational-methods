@@ -1,0 +1,140 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[slovene]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage[left=2cm, right=2cm, top=2cm, bottom=2cm]{geometry}
+
+\title{Visje racunske metode -- Naloga 1}
+\author{Marcel Čampa}
+\date{\today}
+
+\begin{document}
+    \maketitle
+
+    \section{Metode}
+    Uporabili smo tri metode za numericno resevanje parcialnih diferencialnih enacb.
+
+    \subsection{Metoda koncnih diferenc}
+    Najosnovnejsa metoda, pri kateri odvode aproksimiramo z izrazitvijo iz Taylorjeve vrste.
+    Pri diskretizaciji naravno vzamemo, da sta clena $i$ in $i+1$ za $h$ narazen, kjer je $h$ iz
+    Taylorjevega razvoja, ki si ga lahko izberemo sami. Tako dobimo formulo za casovni korak
+    \begin{equation} \label{eq:finite_diff}
+        \psi_{m,n+1} = \psi_{m,n} + i \tau \left\{ \frac{1}{2h^2} (\psi_{m+1,n} + \psi_{m-1,n}) - 2 \psi_{m,n}) - V_m \psi_{m,n} \right\}.
+    \end{equation}
+
+    \subsection{Skoki s koncnim propagatorjem}
+    Ce razvijemo propagator za koncni korak $\tau$ v vrsto, dobimo
+    \begin{equation}
+        \psi_{m,n+1} = \left\{ \exp(-i\tau \bar{H}) \psi \right\}_{m,n} = \sum_{k=0}^K \frac{(-i\tau)^k}{k!} (\bar{H}^k \psi)_{m,n},
+    \end{equation}
+    kjer si $K$ izberemo poljubno. Seveda velja, da vecji kot je $K$, manjsa je napaka, ki je reda $\mathcal{O}(\tau^{K+1})$. Mi smo si
+    izbrali $K = 10$.
+
+    \subsection{Implicitna shema}
+    Tokrat propagator aproksimiramo z
+    $$\exp(-i\tau \bar{H}) = \left( 1 + i \frac{\tau}{2} \bar{H} \right)^{-1} \left( 1 - i\frac{\tau}{2} \bar{H} \right).$$
+    Napaka aproksimacije je reda $\mathcal{O}(\tau^3)$. Ta aproksimacija je se posebej dobra zato, ker je tudi unitaren operator,
+    zaradi cesa bo $\psi$ se vedno ostala pravilne oblike. Ce sedaj zapisemo casovni razvoj s koncnimi diferencami,
+    dobimo implicitno enacbo
+    \begin{multline*}
+        \psi_{m,n+1} - \frac{i\tau}{4} \left\{ \frac{1}{h^2} (\psi_{m+1,n+1} + \psi_{m-1,n+1} - 2 \psi_{m,n+1}) - 2V_m \psi_{m,n+1} \right\} = \\
+        = \psi_{m,n} + \frac{i\tau}{4} \left\{ \frac{1}{h^2} (\psi_{m+1,n} + \psi_{m-1,n} - 2 \psi_{m,n}) - 2 V_m \psi_{m,n} \right\},
+    \end{multline*}
+    kar lahko zapisemo s tridiagonalno matricno enacbo
+    \begin{equation}
+        \begin{bmatrix}
+            1 + \frac{i\tau}{2h^2} + \frac{i\tau}{2}V_1 & - \frac{i\tau}{4h^2} & & &\\
+            - \frac{i\tau}{4h^2} & 1 + \frac{i\tau}{2h^2} + \frac{i\tau}{2}V_2 & - \frac{i\tau}{4h^2} & &\\
+            & \ddots & \ddots & \ddots & &\\
+            & & - \frac{i\tau}{4h^2} & 1 + \frac{i\tau}{2h^2} + \frac{i\tau}{2}V_{m-1} &- \frac{i\tau}{4h^2}\\
+            & & &  - \frac{i\tau}{4h^2} & 1 + \frac{i\tau}{2h^2} + \frac{i\tau}{2}V_m
+        \end{bmatrix} \begin{bmatrix}
+            \psi_{1,n+1} \\ \psi_{2,n+1} \\ \vdots \\ \psi_{m,n+1}
+        \end{bmatrix} = \text{RHS},
+    \end{equation}
+    kjer je RHS enako desni strani v enacbi \ref{eq:finite_diff}.
+
+
+    \section{Naloge}
+
+    \subsection*{Naloga 1}
+    Obravnavali smo anharmonski oscilator $$V(x) = \frac{1}{2} x^2 + \lambda x^4.$$
+    Za zacetno valovno funkcijo smo vzeli razlicne lastne funkcije harmonskega oscilatorja
+    $$\phi_N(x) = \frac{1}{\pi^{1/4} \sqrt{2^N N!}} \, H_N(x) \exp(-x^2/2),$$
+    kjer je $H_N(x)$ $N$-ti Hermitov polinom, ki ga v Pythonu izracunamo s pomocjo ze implementirane funkcije
+    za Hermitovo vrsto \texttt{numpy.polynomial.hermite.hermval(x, c)}.
+
+    Implementirali smo vse tri zgoraj opisane metode, vendar dobro deluje le zadnja, ki je
+    unitarna, pri vseh ostalih prej ali slej stvar zdivergira v neskoncno. Za $\lambda = 0$ dobimo
+    tako, da se v casu stvar sploh ne razvija, kar sledi iz premisleka, da je zacetna funkcija $\varphi_N(x)|_{\lambda=0}$ lastna
+    funkcija operatorja $\hat{H}$, kar pomeni, da se ne spreminja s casom. Omenjeno stanje prikazuje slika
+    \ref{fig:naloga1_lambda0}.
+
+    \begin{figure}
+        \includegraphics[width=\textwidth]{../images/final/naloga1_N_lambda_0.pdf} 
+        \caption{Valovna funkcija je pri $\lambda = 0$ konstantno enaka zacetni funkciji
+        $\phi_N(x)$.}
+        \label{fig:naloga1_lambda0}
+    \end{figure}
+
+    Poleg tega smo naredili dve animaciji casovnega razvoja. Obe prikazujeta casovni razvoj pri $N = 0,1,\dotsc,5$ in
+    $\lambda = 0, 0.25, 0.5$, pri eni na isti plot risemo razvoje z istim $N$ (\texttt{naloga1\_N.mp4}), pri drugi pa razvoje z isto $\lambda$
+    (\texttt{naloga1\_lambda.mp4}).
+
+    \subsection{Naloga 2}
+
+    Ta naloga je bila zelo podobna prejsnji, le da smo sedaj premaknili stvar za $a > 0$ v desno, torej
+    smo za zacetno funkcijo vzeli $\phi_0(x-a)$. Vzeli smo $a = 5$, saj smo ves cas delali na intervalu $[-10, 10]$,
+    veljati pa mora $L - a \gg 1$. Nato smo pocasi spreminjali $\lambda$, in sicer smo vzeli $\lambda \in \{ 0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5\}$.
+    Stvar je pricakovano postajala vedno bolj kaoticna, casovno evolucijo pa prikazuje animacija \texttt{naloga2.mp4}.
+
+    Pri tej nalogi pa smo si dali malo duska. Vzeli smo zacetno stanje $\phi_0(x)$ in naredili dve odvisnosti:
+    \begin{enumerate}
+        \item Cas, da pride maksimum valovne funkcije v $x = 0$ v odvisnosti od $L$, pri cemer smo vzeli $a = L/2$.
+        \item Cas, da pride maksimum valovne funkcije v $x = 0$ pri konstantnem $L=10,20$ v odvisnosti od $a$. Tu seveda zaradi pogoja $L-a \gg 1$ nismo racunali za $a$ ,,prevec'' blizu $L$.
+    \end{enumerate}
+    Dobili smo tocno take rezultate, ki smo jih pricakovali. Stvar je pri konstantnem $L$ neodvisna od izbire $a$ za $a > 0$, kar nam je jasno
+    po preprostem premisleku, da vecji kot je $a$, vecji je potencial, torej posledicno vecja sila in hitrost potovanja vrha.
+    To je lepo razvidno s slike \ref{fig:naloga2_a}.
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.8\textwidth]{../images/interesting/naloga2_iters_of_gaussian_travel_fixedL=10.pdf}
+        \caption{Odvisnost potovanja vrha valovne funkcije do $x=0$ v odvisnosti od $a$ pri $L=10$. Opazimo, da se pri $a=7$,
+        torej $L-a = 3$ zacne dogajati napaka zaradi nezanemarljive ploscine pod Gaussovko. $a = 0, 0.25, 0.50, 0.75, \dotsc, 8.50,8.75$.}
+        \label{fig:naloga2_a}
+    \end{figure}
+
+    Ta in naslednji rezultat sta precej ocitna tudi z matematicnega vidika, saj je $$\int_{-\infty}^{-3} |\psi(x,t)|^2\, \text{d}x + \int_3^{\infty} |\psi(x,t)|^2\, \text{d}x < 0.003$$
+    kar pomeni, da ce vzamemo $L-a=3$ ali pa $L-a=100$, ne naredimo skoraj nobene razlike. To je razvidno s slike \ref{fig:naloga2_L}.
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.8\textwidth]{../images/interesting/naloga2_iters_of_gaussian_travel.pdf}
+        \caption{Odvisnost casa, da pride maksimum valovne funkcije do $x=0$ v odvisnosti od $L$ (in $a=L/2$). Rezultati so pricakovani,
+        ce ne upostevamo nenatancnosti pri majhnih $L$.}
+        \label{fig:naloga2_L}
+    \end{figure}
+
+    Ce pa pogledamo animaciji \texttt{naloga2\_L10\_a1.mp4} in \texttt{naloga2\_L10\_a5.mp4} pa vidimo, da se napaka zaradi
+    zanemarjanja Gaussovke izven $[-L, L]$ in diskretizacije intervala pocasi nabira (pri $a=5$ v bistvu kar precej hitro). Za boljso natancnost oziroma
+    daljsi cas do opazljive napake bi morali vzeti vecji $h$ in $L$, vendar bi na tako slabi masini, kot jo imam, izracun trajal
+    celo vecnost, zato tega nisem storili.
+
+    Naredili pa smo se graf razlike med tekoco valovno funkcijo in zacetno, kjer se lepo vidi, da je perioda neodvisna od $a$ za $L-a \gg 1$.
+    Zasicenje okrog vrednosti $y=1$ pa se zgodi zato, ker je prekrivanje med ploscino pod tekoco valovno funkcijo in zacetno za dovolj velik $a$ vmes skoraj
+    nicelno. Graf oddaljenosti smo normirali, tako vrednost $y=1$ pomeni, da valovni funkciji nimata skupne ploscine, ceprav je tam razlika ploscine dejansko $2$ ($1$ za vsako).
+    Graf je prikazan na sliki \ref{fig:naloga2_lepa}.
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.8\textwidth]{../images/interesting/naloga2_distance.pdf}
+        \caption{Razlika med tekoco valovno funkcijo in zacetno v odvisnosti od $a$ in iteracije. Zlahka vidimo, da je perioda neodvisna
+        od $a$, kar smo ze dvakrat premislili v tekstu.}
+        \label{fig:naloga2_lepa}
+    \end{figure}
+\end{document}
