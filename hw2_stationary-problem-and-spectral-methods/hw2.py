@@ -1,6 +1,7 @@
 import os
 import sys
 import numpy
+import matplotlib.animation
 import matplotlib.pyplot as plt
 import scipy.integrate
 
@@ -56,27 +57,131 @@ def plot_energies(x, Es, psis, lam):
     plt.legend(plots, Es, title="$E$", loc="upper right")
     plt.grid(linestyle="dotted", alpha=0.5)
     plt.xlabel("$x$", fontsize=16)
-    plt.ylabel("$\\psi(x)$", fontsize=16)
+    plt.ylabel("$||\\psi(x)||^2$", fontsize=16)
     
     fig.savefig("task1_lam={}.pdf".format(int(lam*10)), bbox_inches="tight")
     # plt.show()
 
 
+def plot_per_lam(x, lam_to_Epsi):
+    fig, axes = plt.subplots(2, 3, figsize=(16,9))
+    fig.suptitle("Excited eigenstates of anharmonic oscillator $V(x) = \\frac{{1}}{{2}}x^2 + \\lambda x^4$")
+    
+    n = 0
+    axes_to_plots = [[] for _ in range(6)]
+    axes_to_energies = [[] for _ in range(6)]
+    for lam in lam_to_Epsi:
+        n = len(lam_to_Epsi[lam][1])
+        for i in range(len(lam_to_Epsi[lam][0])):
+            axes_to_plots[i] += axes[int(i/3), i%3].plot(x, numpy.abs(lam_to_Epsi[lam][1][i])**2, linewidth=0.5)
+            axes_to_energies[i].append(lam_to_Epsi[lam][0][i])
+            print(lam_to_Epsi[lam][0][i])
+
+    print(n)
+    for i in range(n):
+        axes[int(i/3), i%3].set_title("$n$-th excited eigenstate for $n={}$".format(i))
+        axes[int(i/3), i%3].set_xlabel("$x$")
+        axes[int(i/3), i%3].set_ylabel("$||\\psi(x)||^2$")
+        axes[int(i/3), i%3].grid(linestyle="dotted", alpha=0.5)
+        axes[int(i/3), i%3].legend(axes_to_plots[i], numpy.round(axes_to_energies[i], 2), title="$E_{}$".format(i))
+
+    fig.legend(axes_to_plots[0], numpy.round(sorted(lam_to_Epsi.keys()), 2), title="$\\lambda$", loc="right")
+    fig.savefig("task1_states_per_n.pdf", bbox_inches="tight")
+
+
 def task1():
     L = 5
-    lams = [0.1*i for i in range(6)]
-    ncalc = 15
-    nret = 5
+    lams = [0.2*i for i in range(6)]
+    ncalc = 16
+    nret = 6
     h = 0.01
     x = numpy.linspace(-L, L, int(2*L/h) + 1)
+
+    lam_to_Epsi = {}
+
     for lam in lams:
         print(lam)
         Es, psis = calculate_psi(ncalc, nret, lam, x)
+        lam_to_Epsi[lam] = [Es, psis]
         plot_energies(x, Es, psis, lam)
+
+    plot_per_lam(x, lam_to_Epsi)
+
+
+def animate(x, states, filename, lam, h, interval_base=10):
+    print("Rendering animation ...")
+    fig, ax = plt.subplots()
+    plt.suptitle("($\\lambda = {0}$)".format(lam))
+    plt.xlabel(r"$x$")
+    plt.ylabel(r"$|\psi|^2$")
+    
+    def animate_func(frame):
+        print("{0} | {1}".format(len(states), frame))
+        ax.clear()
+        ax.set_ylim(bottom=0, top=1)
+        ax.plot(x, numpy.abs(states[frame])**2/(h**2))
+    
+    animation = matplotlib.animation.FuncAnimation(fig, animate_func, frames=len(states), interval=interval_base)
+    animation.save(filename+".mp4")
+
+
+def plot_animation(x, lam_psits, lams, tau, h):
+    axes_to_plots = [[] for _ in range(6)]
+    ts = numpy.array([20*i for i in range(6)])
+    alphas = numpy.linspace(0.1, 1, len(ts))
+
+    fig, axes = plt.subplots(2,3, figsize=(16,9))
+    fig.suptitle("Time evolution of anharmonic oscillator $V(x) = \\frac{{1}}{{2}} x^2 + \\lambda x^4$", fontsize=16)
+    
+    for i in range(len(lams)):
+        for ti, t in enumerate(ts):
+            axes_to_plots[i] += axes[int(i/3), i%3].plot(x, numpy.abs(lam_psits[i][t])**2 *(h**2), 'b-', alpha=alphas[ti])
+
+        axes[int(i/3), i%3].set_title("$\\lambda={}$".format(numpy.round(lams[i], 2)))
+        axes[int(i/3), i%3].set_xlabel("$x$")
+        axes[int(i/3), i%3].set_ylabel("$||\\psi(x)||^2$")
+        axes[int(i/3), i%3].set_ylim(bottom=0, top=1.4)
+        axes[int(i/3), i%3].grid(linestyle="dotted", alpha=0.5)
+        
+    fig.legend(axes_to_plots[0], ts*tau, title="$t = n\\tau$", loc="right")
+    fig.savefig("task2_timeevolution.pdf", bbox_inches="tight")
+    
+
+def task2():
+    L = 5
+    lams = [0.2*i for i in range(6)]
+    ncalc = 15
+    nret = 6
+    h = 0.01
+    x = numpy.linspace(-L, L, int(2*L/h) + 1)
+    tau = 0.01
+    t1 = 10
+    ts = numpy.linspace(0, t1, int(t1/tau) + 1)
+
+    psi0 = phi(0, x)
+    lam_psits = []
+
+    for lam in lams:
+        print(lam)
+        lam_psits.append([])
+        Es, psis = calculate_psi(ncalc, nret, lam, x)
+        
+        for t in ts:
+            lam_psits[-1].append(numpy.zeros(len(x), dtype=complex))
+            for n in range(nret):
+                lam_psits[-1][-1] += numpy.dot(psis[n], psi0) * numpy.exp(-1j * Es[n] * t) * psis[n]
+
+        lam_psits[-1] = numpy.array(lam_psits[-1])
+    # plt.plot(x, numpy.abs(lam_psits[0][0])**2)
+    # plt.show()
+
+    # animate(x, lam_psits[-1], "animacija", lams[-1], h)
+    plot_animation(x, lam_psits, lams, tau, h)
 
 
 
 if __name__ == "__main__":
     os.chdir("hw2_stationary-problem-and-spectral-methods/images/")
     
-    task1()
+    # task1()
+    task2()
